@@ -1,0 +1,113 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 PAIR Universal Contributors
+# SPDX-License-Identifier: Apache-2.0
+name: Universal GPU Report (BETA)
+description: Report test result for any GPU / any Linux/macOS (GTX/Tesla/AMD/Intel/Apple) — see docs/TEST-MATRIX.md
+title: "[Universal GPU]: "
+labels:
+  - universal-gpu
+  - beta
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing **PAIR Universal BETA** on exotic hardware! This helps prove all-GPU + all-Linux. Attach logs, not secrets (no PINs, certs, prompts). See `docs/TEST-MATRIX.md` for procedure.
+
+  - type: input
+    id: pair_version
+    attributes:
+      label: PAIR Universal version
+      description: e.g. v0.91.8-universal, commit SHA, or `nvpair-node-info --version`
+      placeholder: "v0.91.8-universal / 0.14.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS / Distro
+      options:
+        - Debian/Ubuntu/Mint
+        - Fedora/RHEL/Alma/Rocky
+        - Arch/Manjaro
+        - openSUSE
+        - NixOS
+        - Alpine
+        - macOS Apple Silicon (M1/M2/M3/M4/M5)
+        - macOS Intel
+        - Windows 11
+        - Other Linux
+    validations:
+      required: true
+
+  - type: input
+    id: gpu_model
+    attributes:
+      label: GPU model
+      description: As shown in PAIR node info + lspci / system_profiler
+      placeholder: "e.g. GTX 1080 8GB, Tesla T4 16GB, RX 7600, Arc A750, Apple M1 8GB"
+    validations:
+      required: true
+
+  - type: input
+    id: driver
+    attributes:
+      label: Driver / backend
+      placeholder: "e.g. nvidia 535.183.01 CUDA 12.2, ROCm 6.2, Metal, Vulkan, CPU-only"
+    validations:
+      required: true
+
+  - type: input
+    id: vram_detected
+    attributes:
+      label: VRAM detected by PAIR
+      description: Line from nvpair-node-info: INFO detected 1 GPU(s): ...
+      placeholder: "e.g. NVIDIA GeForce GTX 1080 8192 MiB, AMD Radeon 8192 MiB via DRM, Apple M1 8192 MiB"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: test_scenario
+    attributes:
+      label: Test scenario
+      options:
+        - Solo node (1 machine)
+        - Cluster 2 nodes heterogeneous
+        - Cluster 3+ nodes
+        - No GPU / CPU-only
+      validations:
+        required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model tested
+      placeholder: "e.g. qwen2.5:7b-instruct-q4_K_M, mistral:7b-q4, tinyllama:1.1b"
+    validations:
+      required: true
+
+  - type: textarea
+    id: result
+    attributes:
+      label: Result
+      description: Pass/fail, tok/s, Jobs spread, OOM?
+      placeholder: "e.g. PASS: 10/10 curl OK, 13 tok/s, Jobs split 12/8 across 2 nodes. No OOM."
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / evidence
+      description: Paste nvidia-smi / amd-smi / ioreg snippet, /sys/class/drm mem_info, ollama ps, broker debug (sanitized)
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I sanitized logs (no PINs, certs, private prompts)
+        - label: I attached `nvidia-smi` or `rocm-smi` or `ioreg` output if applicable
+        - label: I confirm this is BETA and APIs may change
