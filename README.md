@@ -42,7 +42,7 @@ one, and both report live GPU and memory use throughout.
 | --- | --- | --- |
 | **OS** | Windows 11; Linux; macOS | Identique |
 | **Arch** | x64 / arm64 (Win ARM expérimental) | Identique |
-| **GPU** | RTX 20+ / RTX PRO / DGX Spark / M4+ uniquement | **Tout GPU**: GTX 6xx+, Tesla K/P/V/A/H, RTX, Quadro, **AMD** ROCm, **Intel Arc/iGPU**, CPU-only (détecté via nvidia-smi → rocm-smi/amd-smi → DRM sysfs → ghw) |
+| **GPU** | RTX 20+ / RTX PRO / DGX Spark / M4+ uniquement | **Tout GPU**: GTX 6xx+, Tesla K/P/V/A/H, RTX, Quadro, **AMD** ROCm, **Intel Arc/iGPU**, **Apple Silicon M1/M2/M3/M4/M5** (via `ioreg_parse.go:73` AGX/Apple), CPU-only (détecté via nvidia-smi → rocm-smi/amd-smi → DRM sysfs → ghw → IORegistry) |
 | **Linux installers** | `.deb` seulement | **Universel**: `.deb` + `.rpm` + `.tar.gz` portable + `install.sh` auto-détecte apt/dnf/pacman/zypper + build from source partout |
 | **Mixing nodes** | Windows/Linux/macOS pairables | Identique + clusters hétérogènes NVIDIA/AMD/Intel |
 | **Engines** | Ollama + LM Studio | Identique (+ vLLM prévu) |
@@ -81,29 +81,42 @@ Release downloads incluent:
 
 - Windows `.exe` (non modifié);
 - Linux **universel**: `.deb` (Debian/Ubuntu), `.rpm` (Fedora/RHEL/openSUSE), `.tar.gz` portable (tout distro), et `install.sh`;
-- macOS `.dmg`.
+- macOS **Apple Silicon & Intel**: `pair-universal-*-darwin-arm64.tar.gz` (M1/M2/M3/M4/M5) + `darwin-amd64.tar.gz` (Intel Mac) + `.dmg` upstream.
 
 **🌐 Linux — installateur universel (recommandé, tout distro):**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<ton-org>/pair-universal/main/scripts/install-universal.sh | bash
+curl -fsSL https://raw.githubusercontent.com/a11q1/pair-universal/main/scripts/install-universal.sh | bash
 # ou local:
 chmod +x scripts/install-universal.sh && ./scripts/install-universal.sh
 # détecte apt/dnf/pacman/zypper, sinon installe le tar.gz portable dans /opt/pair
 ```
 
-**Manuel:**
+**🌐 macOS Apple Silicon (M1/M2/M3/M4/M5) — nouveau:**
+```bash
+# Télécharge le tarball darwin-arm64 depuis Releases
+curl -LO https://github.com/a11q1/pair-universal/releases/latest/download/pair-universal-0.91.8-universal-darwin-arm64.tar.gz
+tar xf pair-universal-0.91.8-universal-darwin-arm64.tar.gz
+./pair-universal-0.91.8-universal/bin/nvpair-tui  # TUI headless, ou lance l'app desktop si build Electron
+
+# Alternative: build from source sur Mac (M1/M2/M3/M4 natif)
+git clone https://github.com/a11q1/pair-universal && cd pair-universal
+./services/build.sh && ./services/build/bin/nvpair-tui  # Go 1.25+ suffit, pas besoin Node pour TUI
+xattr -dr com.apple.quarantine ./services/build/bin/*  # si Gatekeeper bloque
+```
+
+**Manuel Linux:**
 ```bash
 # Debian/Ubuntu/Mint/Pop!_OS
-sudo apt install ./pair-universal-*.deb
+sudo apt install ./pair-universal_0.91.8-universal_amd64.deb
 # Fedora/RHEL/openSUSE
 sudo dnf install ./pair-universal-*.rpm   # ou sudo rpm -i / sudo zypper install
 # Arch/Manjaro/NixOS/autre (tarball portable)
-tar xf pair-universal-*-linux-*.tar.gz && sudo ./install.sh
+tar xf pair-universal-*-linux-*.tar.gz && sudo ./scripts/install-universal.sh --tarball pair-universal-*-linux-*.tar.gz
 # Ou build from source (tout Linux)
-git clone https://github.com/<ton-org>/pair-universal && cd pair-universal && ./services/build.sh && ./services/build/bin/nvpair-tui
+git clone https://github.com/a11q1/pair-universal && cd pair-universal && ./services/build.sh && ./services/build/bin/nvpair-tui
 ```
 
-**On Windows and macOS,** identique à upstream.
+**Windows:** identique upstream. **macOS Intel:** `darwin-amd64.tar.gz` même procédure.
 
 If you have kept more than one PAIR package in that directory, install the one
 you want by its full filename instead.
