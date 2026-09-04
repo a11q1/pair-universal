@@ -43,7 +43,7 @@ jobs:
           path: dist/pair-universal-*.tar.gz
           retention-days: 7
 
-build-test-darwin:
+  build-test-darwin:
     name: Cross-compile (darwin arm64/amd64)
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -119,4 +119,3 @@ build-test-darwin:
         run: |
           # Could add logic to auto-tag on version bump
           echo "Version: $prod"
-
