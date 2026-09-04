@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 # PAIR Universal — Personal AI Router (Universal Fork) — BETA
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-BETA-orange.svg)](#)
+[![Status](https://img.shields.io/badge/status-BETA-orange.svg)](https://github.com/a11q1/pair-universal/issues/new?template=universal-gpu-report.yml)
 [![Universal GPU](https://img.shields.io/badge/GPU-NVIDIA%20%7C%20AMD%20%7C%20Intel-brightgreen.svg)](#)
 [![Linux Universal](https://img.shields.io/badge/Linux-Debian%20%7C%20Ubuntu%20%7C%20Fedora%20%7C%20Arch%20%7C%20NixOS-blue.svg)](#)
 [![Original](https://img.shields.io/badge/upstream-NVIDIA%2FPersonal--AI--Router-grey.svg)](https://github.com/NVIDIA/Personal-AI-Router)

@@ -105,6 +105,23 @@ if command -v curl >/dev/null 2>&1; then DL="curl -fsSL -o"; elif command -v wge
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
+# Resolve VERSION="latest" → actual tag name via GitHub API
+if [[ "$VERSION" == "latest" ]]; then
+  log "Resolving latest release from GitHub API..."
+  if LATEST_TAG=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" | jq -r '.tag_name' 2>/dev/null); then
+    if [[ -n "$LATEST_TAG" && "$LATEST_TAG" != "null" ]]; then
+      VERSION="$LATEST_TAG"
+      log "Latest release: $VERSION"
+    else
+      warn "Could not resolve latest release, falling back to known tag v0.91.8-universal"
+      VERSION="v0.91.8-universal"
+    fi
+  else
+    warn "GitHub API unavailable, falling back to known tag v0.91.8-universal"
+    VERSION="v0.91.8-universal"
+  fi
+fi
+
 # Real assets are versioned: pair-universal-0.91.8-universal-linux-amd64.tar.gz
 # Try versioned first, then generic for future compat
 try_download() {
@@ -114,12 +131,13 @@ try_download() {
 }
 
 URLS=()
-if [[ "$VERSION" == "latest" ]]; then
-  URLS+=("https://github.com/$REPO/releases/latest/download/pair-universal-0.91.8-universal-linux-$ARCH.tar.gz")
-  URLS+=("https://github.com/$REPO/releases/latest/download/pair-universal-linux-$ARCH.tar.gz")
-else
-  URLS+=("https://github.com/$REPO/releases/download/$VERSION/pair-universal-$VERSION-linux-$ARCH.tar.gz")
-  URLS+=("https://github.com/$REPO/releases/download/$VERSION/pair-universal-linux-$ARCH.tar.gz")
+# Extract version without leading 'v' for asset name if present
+ASSET_VER="${VERSION#v}"
+URLS+=("https://github.com/$REPO/releases/download/$VERSION/pair-universal-$ASSET_VER-linux-$ARCH.tar.gz")
+URLS+=("https://github.com/$REPO/releases/download/$VERSION/pair-universal-linux-$ARCH.tar.gz")
+# Also try without 'v' prefix in tag
+if [[ "$VERSION" == v* ]]; then
+  URLS+=("https://github.com/$REPO/releases/download/${VERSION#v}/pair-universal-$ASSET_VER-linux-$ARCH.tar.gz")
 fi
 
 DL_OK=0
