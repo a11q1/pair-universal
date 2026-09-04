@@ -1,0 +1,87 @@
+{
+  "engine": "vllm",
+  "display_name": "vLLM",
+  "manifest_version": 1,
+  "install": { "mode": "user" },
+  "runtime": {
+    "args": [
+      "--host", "{host}",
+      "--port", "{port}",
+      "--api-key", "vllm-local",
+      "--disable-log-requests",
+      "--max-model-len", "32768"
+    ],
+    "env": {
+      "VLLM_USE_V1": "1",
+      "CUDA_VISIBLE_DEVICES": "all"
+    },
+    "bind": "0.0.0.0",
+    "port": 8000,
+    "ready": { "http": "http://127.0.0.1:{port}/v1/models", "status": 200, "timeout_s": 300 },
+    "stop": { "signal": "term", "grace_s": 10 },
+    "health": { "http": "http://127.0.0.1:{port}/v1/models", "status": 200, "interval_s": 10 }
+  },
+  "platforms": {
+    "linux/amd64": {
+      "detect": ["{install_dir}/bin/vllm", "{install_dir}/bin/python"],
+      "install": {
+        "fetch": { "url": "https://github.com/vllm-project/vllm/archive/refs/tags/v0.6.3.tar.gz" },
+        "run": [
+          "bash", "-c",
+          "cd {download} && pip install --no-cache-dir -e . --extra-index-url https://download.pytorch.org/whl/cu121 2>&1 | tail -20"
+        ],
+        "mode": "user"
+      },
+      "uninstall": { "run": ["rm", "-rf", "{install_dir}"] },
+      "runtime": {
+        "bin": "{install_dir}/bin/python",
+        "args": ["-m", "vllm.entrypoints.openai.api_server"],
+        "env": {
+          "PATH": "{install_dir}/bin:{PATH}",
+          "LD_LIBRARY_PATH": "{install_dir}/lib:{LD_LIBRARY_PATH}",
+          "PYTHONPATH": "{install_dir}/lib/python3.12/site-packages"
+        }
+      }
+    },
+    "linux/arm64": {
+      "detect": ["{install_dir}/bin/vllm", "{install_dir}/bin/python"],
+      "install": {
+        "fetch": { "url": "https://github.com/vllm-project/vllm/archive/refs/tags/v0.6.3.tar.gz" },
+        "run": [
+          "bash", "-c",
+          "cd {download} && pip install --no-cache-dir -e . 2>&1 | tail -20"
+        ],
+        "mode": "user"
+      },
+      "uninstall": { "run": ["rm", "-rf", "{install_dir}"] },
+      "runtime": {
+        "bin": "{install_dir}/bin/python",
+        "args": ["-m", "vllm.entrypoints.openai.api_server"],
+        "env": {
+          "PATH": "{install_dir}/bin:{PATH}",
+          "LD_LIBRARY_PATH": "{install_dir}/lib:{LD_LIBRARY_PATH}",
+          "PYTHONPATH": "{install_dir}/lib/python3.12/site-packages"
+        }
+      }
+    }
+  },
+  "actions": {
+    "list_models": {
+      "description": "List models available on this vLLM server.",
+      "http": { "method": "GET", "path": "/v1/models" },
+      "result": { "array": "data", "field": "id" }
+    },
+    "pull_model": {
+      "description": "vLLM loads models from Hugging Face on demand. This registers a model alias (params: {\"model\": \"<hf-repo>\", \"alias\": \"<name>\"}).",
+      "http": { "method": "POST", "path": "/v1/models/register", "body_schema": { "model": "string", "alias": "string" } }
+    },
+    "chat": {
+      "description": "OpenAI-compatible chat completion (params: {\"model\": \"<name>\", \"messages\": [...]}).",
+      "http": { "method": "POST", "path": "/v1/chat/completions", "body_schema": { "model": "string", "messages": "array" } }
+    },
+    "completions": {
+      "description": "OpenAI-compatible completions (params: {\"model\": \"<name>\", \"prompt\": \"<text>\"}).",
+      "http": { "method": "POST", "path": "/v1/completions", "body_schema": { "model": "string", "prompt": "string" } }
+    }
+  }
+}
