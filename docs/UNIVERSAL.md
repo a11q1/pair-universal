@@ -3,9 +3,11 @@ SPDX-FileCopyrightText: Copyright (c) 2026 PAIR Universal Contributors
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# PAIR Universal — Notes de fork
+# PAIR Universal — BÊTA — Notes de fork
 
-Ce document décrit les modifications du fork **PAIR Universal** par rapport à [NVIDIA/Personal-AI-Router](https://github.com/NVIDIA/Personal-AI-Router) `0.91.7`.
+> ⚠️ BÊTA — upstream NVIDIA PAIR est en bêta (03/09/2026). Ce fork hérite du statut bêta : APIs/scheduler non stabilisés.
+
+Ce document décrit les modifications du fork **PAIR Universal BÊTA** par rapport à [NVIDIA/Personal-AI-Router](https://github.com/NVIDIA/Personal-AI-Router) `0.91.7` (bêta).
 
 ## Objectif
 

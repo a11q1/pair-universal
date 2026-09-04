@@ -3,14 +3,15 @@ SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All 
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# PAIR Universal — Personal AI Router (Fork Universel)
+# PAIR Universal — Personal AI Router (Fork Universel) — BÊTA
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-BÊTA-orange.svg)](#)
 [![Universal GPU](https://img.shields.io/badge/GPU-NVIDIA%20%7C%20AMD%20%7C%20Intel-brightgreen.svg)](#)
 [![Linux Universal](https://img.shields.io/badge/Linux-Debian%20%7C%20Ubuntu%20%7C%20Fedora%20%7C%20Arch%20%7C%20NixOS-blue.svg)](#)
 [![Original](https://img.shields.io/badge/upstream-NVIDIA%2FPersonal--AI--Router-grey.svg)](https://github.com/NVIDIA/Personal-AI-Router)
 
-> **Fork communautaire universel de [NVIDIA PAIR](https://github.com/NVIDIA/Personal-AI-Router)** — même routing intelligent, mais **compatible tout GPU** (GTX, Tesla, RTX, Quadro, AMD Radeon/Instinct, Intel Arc/iGPU) et **tout Linux** (Debian/Ubuntu, Fedora/RHEL, Arch, openSUSE, NixOS...). Aucune allowlist RTX.
+> **⚠️ BÊTA — Fork communautaire universel de [NVIDIA PAIR BÊTA](https://github.com/NVIDIA/Personal-AI-Router) (sortie 03/09/2026, IFA Berlin).** Même routing, mais **compatible tout GPU** (GTX, Tesla, RTX, Quadro, AMD Radeon/Instinct, Intel Arc/iGPU, Apple Silicon M1-M5) et **tout Linux** (Debian/Ubuntu, Fedora/RHEL, Arch, openSUSE, NixOS...). Aucune allowlist RTX. Pas pour prod critique — APIs/scheduler peuvent changer sans préavis (voir `services/VERSIONING.md:28`).
 
 *Original NVIDIA PAIR ci-dessous — les ajouts Universal sont marqués 🌐.*
 
