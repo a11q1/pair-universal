@@ -97,7 +97,7 @@ if [[ -f "$REPO_ROOT/services/build.sh" ]]; then
 fi
 
 # Sinon: téléchargement release
-REPO="${PAIR_UNIVERSAL_REPO:-<ton-org>/pair-universal}"
+REPO="${PAIR_UNIVERSAL_REPO:-a11q1/pair-universal}"
 VERSION="${PAIR_VERSION:-latest}"
 log "Aucun build local — tentative téléchargement release $REPO@$VERSION ..."
 if command -v curl >/dev/null 2>&1; then DL="curl -fsSL -o"; elif command -v wget >/dev/null 2>&1; then DL="wget -qO"; else err "curl ou wget requis"; exit 1; fi
@@ -105,11 +105,28 @@ if command -v curl >/dev/null 2>&1; then DL="curl -fsSL -o"; elif command -v wge
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
-if [[ "$VERSION" == "latest" ]]; then URL="https://github.com/$REPO/releases/latest/download/pair-universal-linux-$ARCH.tar.gz"
-else URL="https://github.com/$REPO/releases/download/$VERSION/pair-universal-linux-$ARCH.tar.gz"; fi
+# Assets réels sont versionnés: pair-universal-0.91.8-universal-linux-amd64.tar.gz
+# On tente d'abord versionné, puis générique pour compat future
+try_download() {
+  local url="$1"
+  log "Téléchargement $url ..."
+  $DL "$TMPDIR/pair.tar.gz" "$url" 2>/dev/null
+}
 
-log "Téléchargement $URL ..."
-if $DL "$TMPDIR/pair.tar.gz" "$URL" 2>/dev/null; then
+URLS=()
+if [[ "$VERSION" == "latest" ]]; then
+  URLS+=("https://github.com/$REPO/releases/latest/download/pair-universal-0.91.8-universal-linux-$ARCH.tar.gz")
+  URLS+=("https://github.com/$REPO/releases/latest/download/pair-universal-linux-$ARCH.tar.gz")
+else
+  URLS+=("https://github.com/$REPO/releases/download/$VERSION/pair-universal-$VERSION-linux-$ARCH.tar.gz")
+  URLS+=("https://github.com/$REPO/releases/download/$VERSION/pair-universal-linux-$ARCH.tar.gz")
+fi
+
+DL_OK=0
+for URL in "${URLS[@]}"; do
+  if try_download "$URL"; then DL_OK=1; break; fi
+done
+if [[ $DL_OK == 1 ]]; then
   sudo mkdir -p "$PREFIX"
   sudo tar -xzf "$TMPDIR/pair.tar.gz" --strip-components=1 -C "$PREFIX" 2>/dev/null || { sudo tar -xzf "$TMPDIR/pair.tar.gz" -C "$TMPDIR" && sudo mkdir -p "$PREFIX/bin" && sudo cp -a "$TMPDIR"/*/bin/* "$PREFIX/bin/" 2>/dev/null || sudo cp -a "$TMPDIR"/bin/* "$PREFIX/bin/" 2>/dev/null; }
   sudo chmod +x "$PREFIX/bin/"* 2>/dev/null || true
