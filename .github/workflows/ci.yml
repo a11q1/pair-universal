@@ -43,7 +43,7 @@ jobs:
           path: dist/pair-universal-*.tar.gz
           retention-days: 7
 
-  build-test-darwin:
+build-test-darwin:
     name: Cross-compile (darwin arm64/amd64)
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -56,22 +56,24 @@ jobs:
       - name: Cross-compile darwin arm64
         run: |
           cd services
-          for comp in ollama-proxy lmstudio-proxy nvpair-node-info nvpair-node-scanner nvpair-manual-nodes nvpair-workload-manager nvpair-errors nvpair-engine-manager nvpair-node-settings nvpair-ui-broker nvpair-cluster-manager nvpair-job-scheduler nvpair-tui; do
+          for comp in ollama-proxy lmstudio-proxy vllm-proxy nvpair-node-info nvpair-node-scanner nvpair-manual-nodes nvpair-workload-manager nvpair-errors nvpair-engine-manager nvpair-node-settings nvpair-ui-broker nvpair-cluster-manager nvpair-job-scheduler nvpair-tui; do
             ver=$(jq -r --arg k "$comp" '.components[$k]' versions.json)
-            GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-X main.Version=$ver" -o "/tmp/$comp-arm64" "./$comp"
+            (cd "$comp" && GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-X main.Version=$ver" -o "/tmp/$comp-arm64" .)
             file "/tmp/$comp-arm64" | grep -q "Mach-O 64-bit arm64" || exit 1
           done
       - name: Cross-compile darwin amd64
         run: |
           cd services
-          for comp in ollama-proxy lmstudio-proxy nvpair-node-info nvpair-node-scanner nvpair-manual-nodes nvpair-workload-manager nvpair-errors nvpair-engine-manager nvpair-node-settings nvpair-ui-broker nvpair-cluster-manager nvpair-job-scheduler nvpair-tui; do
+          for comp in ollama-proxy lmstudio-proxy vllm-proxy nvpair-node-info nvpair-node-scanner nvpair-manual-nodes nvpair-workload-manager nvpair-errors nvpair-engine-manager nvpair-node-settings nvpair-ui-broker nvpair-cluster-manager nvpair-job-scheduler nvpair-tui; do
             ver=$(jq -r --arg k "$comp" '.components[$k]' versions.json)
-            GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.Version=$ver" -o "/tmp/$comp-amd64" "./$comp"
+            (cd "$comp" && GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.Version=$ver" -o "/tmp/$comp-amd64" .)
             file "/tmp/$comp-amd64" | grep -q "Mach-O 64-bit x86_64" || exit 1
+          done
       - name: Verify version stamps
         run: |
           /tmp/nvpair-node-info-arm64 --version | grep -q "0.14.0"
           /tmp/nvpair-tui-arm64 --version | grep -q "0.7.2"
+          /tmp/vllm-proxy-arm64 --version | grep -q "0.1.0"
 
   lint-check:
     name: Lint & Headers
