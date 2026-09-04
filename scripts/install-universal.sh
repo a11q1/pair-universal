@@ -108,7 +108,7 @@ trap 'rm -rf "$TMPDIR"' EXIT
 # Resolve VERSION="latest" → actual tag name via GitHub API
 if [[ "$VERSION" == "latest" ]]; then
   log "Resolving latest release from GitHub API..."
-  if LATEST_TAG=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" | jq -r '.tag_name' 2>/dev/null); then
+  if LATEST_TAG=$(curl -fsSL "https://api.github.com/repos/$REPO/releases" | jq -r '.[0].tag_name' 2>/dev/null); then
     if [[ -n "$LATEST_TAG" && "$LATEST_TAG" != "null" ]]; then
       VERSION="$LATEST_TAG"
       log "Latest release: $VERSION"
