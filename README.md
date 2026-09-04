@@ -3,17 +3,17 @@ SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All 
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# PAIR Universal — Personal AI Router (Fork Universel) — BÊTA
+# PAIR Universal — Personal AI Router (Universal Fork) — BETA
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-BÊTA-orange.svg)](#)
+[![Status](https://img.shields.io/badge/status-BETA-orange.svg)](#)
 [![Universal GPU](https://img.shields.io/badge/GPU-NVIDIA%20%7C%20AMD%20%7C%20Intel-brightgreen.svg)](#)
 [![Linux Universal](https://img.shields.io/badge/Linux-Debian%20%7C%20Ubuntu%20%7C%20Fedora%20%7C%20Arch%20%7C%20NixOS-blue.svg)](#)
 [![Original](https://img.shields.io/badge/upstream-NVIDIA%2FPersonal--AI--Router-grey.svg)](https://github.com/NVIDIA/Personal-AI-Router)
 
-> **⚠️ BÊTA — Fork communautaire universel de [NVIDIA PAIR BÊTA](https://github.com/NVIDIA/Personal-AI-Router) (sortie 03/09/2026, IFA Berlin).** Même routing, mais **compatible tout GPU** (GTX, Tesla, RTX, Quadro, AMD Radeon/Instinct, Intel Arc/iGPU, Apple Silicon M1-M5) et **tout Linux** (Debian/Ubuntu, Fedora/RHEL, Arch, openSUSE, NixOS...). Aucune allowlist RTX. Pas pour prod critique — APIs/scheduler peuvent changer sans préavis (voir `services/VERSIONING.md:28`).
+> **⚠️ BETA — Universal community fork of [NVIDIA PAIR BETA](https://github.com/NVIDIA/Personal-AI-Router) (released 09/03/2026, IFA Berlin).** Same intelligent routing, but **supports all GPUs** (GTX, Tesla, RTX, Quadro, AMD Radeon/Instinct, Intel Arc/iGPU, Apple Silicon M1-M5) and **all Linux distros** (Debian/Ubuntu, Fedora/RHEL, Arch, openSUSE, NixOS...). No RTX allowlist. Not for critical production — APIs/scheduler may change without notice (see `services/VERSIONING.md:28`).
 
-*Original NVIDIA PAIR ci-dessous — les ajouts Universal sont marqués 🌐.*
+*Original NVIDIA PAIR below — Universal additions are marked 🌐.*
 
 NVIDIA Personal AI Router (PAIR) is a local inference router for a group of
 compatible computers on the same network. It discovers participating nodes,
@@ -41,14 +41,14 @@ one, and both report live GPU and memory use throughout.
 
 | | Upstream NVIDIA | 🌐 PAIR Universal |
 | --- | --- | --- |
-| **OS** | Windows 11; Linux; macOS | Identique |
-| **Arch** | x64 / arm64 (Win ARM expérimental) | Identique |
-| **GPU** | RTX 20+ / RTX PRO / DGX Spark / M4+ uniquement | **Tout GPU**: GTX 6xx+, Tesla K/P/V/A/H, RTX, Quadro, **AMD** ROCm, **Intel Arc/iGPU**, **Apple Silicon M1/M2/M3/M4/M5** (via `ioreg_parse.go:73` AGX/Apple), CPU-only (détecté via nvidia-smi → rocm-smi/amd-smi → DRM sysfs → ghw → IORegistry) |
-| **Linux installers** | `.deb` seulement | **Universel**: `.deb` + `.rpm` + `.tar.gz` portable + `install.sh` auto-détecte apt/dnf/pacman/zypper + build from source partout |
-| **Mixing nodes** | Windows/Linux/macOS pairables | Identique + clusters hétérogènes NVIDIA/AMD/Intel |
-| **Engines** | Ollama + LM Studio | Identique (+ vLLM prévu) |
+| **OS** | Windows 11; Linux; macOS | Same |
+| **Arch** | x64 / arm64 (Win ARM experimental) | Same |
+| **GPU** | RTX 20+ / RTX PRO / DGX Spark / M4+ only | **All GPUs**: GTX 6xx+, Tesla K/P/V/A/H, RTX, Quadro, **AMD** ROCm, **Intel Arc/iGPU**, **Apple Silicon M1/M2/M3/M4/M5** (via `ioreg_parse.go:73` AGX/Apple), CPU-only (detected via nvidia-smi → rocm-smi/amd-smi → DRM sysfs → ghw → IORegistry) |
+| **Linux installers** | `.deb` only | **Universal**: `.deb` + `.rpm` + `.tar.gz` portable + `install.sh` auto-detects apt/dnf/pacman/zypper + build from source everywhere |
+| **Mixing nodes** | Windows/Linux/macOS can be paired | Same + heterogeneous NVIDIA/AMD/Intel/Apple clusters |
+| **Engines** | Ollama + LM Studio | Same (+ vLLM planned) |
 
-**🌐 Différences techniques:** `services/nvpair-node-info/gpu_linux.go:36` et `stats_linux.go:153` patchés pour énumérer tous les GPUs via DRM sysfs (`/sys/class/drm/card*/device/mem_info_*`). Aucun filtre RTX. Le scheduler reste le même — il route chaque requête vers un node éligible, ne pool pas la VRAM.
+**🌐 Technical differences:** `services/nvpair-node-info/gpu_linux.go:36` and `stats_linux.go:153` patched to enumerate all GPUs via DRM sysfs (`/sys/class/drm/card*/device/mem_info_*`). No RTX filter. Scheduler is unchanged — it routes each request to an eligible node, does not pool VRAM.
 
 **PAIR running on a machine does not mean an engine will.** PAIR itself runs on
 any supported Windows, Linux, or macOS machine. Each engine sets its own requirements
@@ -77,47 +77,47 @@ tells you when a newer release exists and installs it on your say-so from
 update feed, so you would upgrade it by pulling and rebuilding.
 
 Download **PAIR Universal** from the
-[GitHub releases page](../../releases) (ou upstream [NVIDIA/Personal-AI-Router](https://github.com/NVIDIA/Personal-AI-Router/releases)).
-Release downloads incluent:
+[GitHub releases page](../../releases) (or upstream [NVIDIA/Personal-AI-Router](https://github.com/NVIDIA/Personal-AI-Router/releases)).
+Release downloads include:
 
-- Windows `.exe` (non modifié);
-- Linux **universel**: `.deb` (Debian/Ubuntu), `.rpm` (Fedora/RHEL/openSUSE), `.tar.gz` portable (tout distro), et `install.sh`;
-- macOS **Apple Silicon & Intel**: `pair-universal-*-darwin-arm64.tar.gz` (M1/M2/M3/M4/M5) + `darwin-amd64.tar.gz` (Intel Mac) + `.dmg` upstream.
+- Windows `.exe` (unchanged);
+- Linux **universal**: `.deb` (Debian/Ubuntu), `.rpm` (Fedora/RHEL/openSUSE), `.tar.gz` portable (any distro), and `install.sh`;
+- macOS **Apple Silicon & Intel**: `pair-universal-*-darwin-arm64.tar.gz` (M1/M2/M3/M4/M5) + `darwin-amd64.tar.gz` (Intel Mac) + upstream `.dmg`.
 
-**🌐 Linux — installateur universel (recommandé, tout distro):**
+**🌐 Linux — universal installer (recommended, any distro):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/a11q1/pair-universal/main/scripts/install-universal.sh | bash
-# ou local:
+# or locally:
 chmod +x scripts/install-universal.sh && ./scripts/install-universal.sh
-# détecte apt/dnf/pacman/zypper, sinon installe le tar.gz portable dans /opt/pair
+# auto-detects apt/dnf/pacman/zypper, otherwise installs portable tarball to /opt/pair
 ```
 
-**🌐 macOS Apple Silicon (M1/M2/M3/M4/M5) — nouveau:**
+**🌐 macOS Apple Silicon (M1/M2/M3/M4/M5) — new:**
 ```bash
-# Télécharge le tarball darwin-arm64 depuis Releases
+# Download darwin-arm64 tarball from Releases
 curl -LO https://github.com/a11q1/pair-universal/releases/latest/download/pair-universal-0.91.8-universal-darwin-arm64.tar.gz
 tar xf pair-universal-0.91.8-universal-darwin-arm64.tar.gz
-./pair-universal-0.91.8-universal/bin/nvpair-tui  # TUI headless, ou lance l'app desktop si build Electron
+./pair-universal-0.91.8-universal/bin/nvpair-tui  # headless TUI, or launch desktop app if Electron build
 
-# Alternative: build from source sur Mac (M1/M2/M3/M4 natif)
+# Alternative: build from source on Mac (M1/M2/M3/M4 native)
 git clone https://github.com/a11q1/pair-universal && cd pair-universal
-./services/build.sh && ./services/build/bin/nvpair-tui  # Go 1.25+ suffit, pas besoin Node pour TUI
-xattr -dr com.apple.quarantine ./services/build/bin/*  # si Gatekeeper bloque
+./services/build.sh && ./services/build/bin/nvpair-tui  # Go 1.25+ only, no Node needed for TUI
+xattr -dr com.apple.quarantine ./services/build/bin/*  # if Gatekeeper blocks
 ```
 
-**Manuel Linux:**
+**Linux manual:**
 ```bash
 # Debian/Ubuntu/Mint/Pop!_OS
 sudo apt install ./pair-universal_0.91.8-universal_amd64.deb
 # Fedora/RHEL/openSUSE
-sudo dnf install ./pair-universal-*.rpm   # ou sudo rpm -i / sudo zypper install
-# Arch/Manjaro/NixOS/autre (tarball portable)
+sudo dnf install ./pair-universal-*.rpm   # or sudo rpm -i / sudo zypper install
+# Arch/Manjaro/NixOS/other (portable tarball)
 tar xf pair-universal-*-linux-*.tar.gz && sudo ./scripts/install-universal.sh --tarball pair-universal-*-linux-*.tar.gz
-# Ou build from source (tout Linux)
+# Or build from source (any Linux)
 git clone https://github.com/a11q1/pair-universal && cd pair-universal && ./services/build.sh && ./services/build/bin/nvpair-tui
 ```
 
-**Windows:** identique upstream. **macOS Intel:** `darwin-amd64.tar.gz` même procédure.
+**Windows:** same as upstream. **macOS Intel:** `darwin-amd64.tar.gz` same steps.
 
 If you have kept more than one PAIR package in that directory, install the one
 you want by its full filename instead.
@@ -206,7 +206,7 @@ keep your data.
 uninstaller stops PAIR, removes its firewall rules, and asks whether to delete
 your data. Decline and it stays; accept and it is removed.
 
-**Linux (Universal).** `scripts/install-universal.sh --uninstall` ou:
+**Linux (Universal).** `scripts/install-universal.sh --uninstall` or:
 - Debian: `sudo apt remove nvpair` / `sudo apt purge nvpair`
 - Fedora/RHEL: `sudo dnf remove nvpair`
 - Arch: `sudo pacman -R nvpair`

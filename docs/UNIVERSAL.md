@@ -3,95 +3,104 @@ SPDX-FileCopyrightText: Copyright (c) 2026 PAIR Universal Contributors
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# PAIR Universal — BÊTA — Notes de fork
+# PAIR Universal — BETA — Fork Notes
 
-> ⚠️ BÊTA — upstream NVIDIA PAIR est en bêta (03/09/2026). Ce fork hérite du statut bêta : APIs/scheduler non stabilisés.
+> ⚠️ BETA — upstream NVIDIA PAIR is in beta since 09/03/2026. This fork inherits the beta status: APIs/scheduler not yet stable.
 
-Ce document décrit les modifications du fork **PAIR Universal BÊTA** par rapport à [NVIDIA/Personal-AI-Router](https://github.com/NVIDIA/Personal-AI-Router) `0.91.7` (bêta).
+This document describes the changes in the **PAIR Universal BETA** fork compared to [NVIDIA/Personal-AI-Router](https://github.com/NVIDIA/Personal-AI-Router) `0.91.7` (beta).
 
-## Objectif
+## Goal
 
-Rendre PAIR utilisable sur **tout GPU** et **tout Linux**, sans allowlist RTX.
+Make PAIR usable on **all GPUs** and **all Linux distros**, without an RTX allowlist, and with full Apple Silicon support.
 
-## Modifications
+## Changes
 
-### 1. GPU universel — `services/nvpair-node-info/`
+### 1. Universal GPU — `services/nvpair-node-info/`
 
-**`gpu_linux.go:36`** — `detectGPUs()` réécrit:
+**`gpu_linux.go:36`** — `detectGPUs()` rewritten:
 
 ```
-nvidia-smi (tous: GTX/Tesla/RTX/Quadro) → AMD (amd-smi/rocm-smi + DRM sysfs) → DRM sysfs (/sys/class/drm/card*) → ghw fallback
+nvidia-smi (all: GTX/Tesla/RTX/Quadro) → AMD (amd-smi/rocm-smi + DRM sysfs) → DRM sysfs (/sys/class/drm/card*) → ghw fallback
 ```
 
-- Supporte GTX 6xx+, Tesla K/P/V/A/H (Kepler à Hopper), Quadro, RTX, **AMD Radeon/Instinct/RDNA/CDNA**, **Intel Arc/iGPU**, CPU-only.
-- VRAM via `mem_info_vram_total`, `lmem_total_bytes` etc., sinon `0` (Ollama décide quand même si le modèle tient).
-- Aucune vérification de génération — si le driver expose la carte, PAIR la liste.
+- Supports GTX 6xx+, Tesla K/P/V/A/H (Kepler to Hopper), Quadro, RTX, **AMD Radeon/Instinct/RDNA/CDNA**, **Intel Arc/iGPU**, Apple Silicon via IORegistry, CPU-only.
+- VRAM via `mem_info_vram_total`, `lmem_total_bytes` etc., otherwise `0` (Ollama still decides if the model fits).
+- No generation check — if the driver exposes the card, PAIR lists it.
 
-**`stats_linux.go:153`** — `decodeGPU()` réécrit:
+**`gpu_darwin.go:21` / `ioreg_parse.go:73`** — inherited: detects any Apple Silicon via `AGXAccelerator` / `Apple*` (M1/M2/M3/M4/M5), `VRAM = systemMemory`. Upstream test uses `Apple M3 Max`.
 
-- Ne bloque plus après échec `nvidia-smi` (retire latch `nvidiaUnavailable`).
-- Fallback sysfs DRM: lit `mem_info_vram_used` / `gpu_busy_percent` pour AMD/Intel.
-- Permet clusters hétérogènes NVIDIA+AMD+Intel.
+**`stats_linux.go:153`** — `decodeGPU()` rewritten:
+
+- No longer latches after `nvidia-smi` failure (removes `nvidiaUnavailable` latch).
+- DRM sysfs fallback: reads `mem_info_vram_used` / `gpu_busy_percent` for AMD/Intel.
+- Enables heterogeneous NVIDIA+AMD+Intel clusters.
 
 **Version bump:** `services/versions.json:8` `nvpair-node-info` `0.13.3` → `0.14.0`, `product` `0.91.7` → `0.91.8-universal`.
 
-### 2. Linux universel
+### 2. Universal Linux + macOS
 
-- **`scripts/install-universal.sh`** — installateur auto-détecte `apt`/`dnf`/`yum`/`zypper`/`pacman`/`apk`, sinon tarball portable dans `/opt/pair`. Supporte `--uninstall`.
-- **`scripts/build-universal.sh`** — produit en une commande `dist/pair-universal-*.tar.gz` + `*.deb` + `*.rpm` (si `fpm`/`rpmbuild`).
-- **`Makefile`** — target `make build-universal`.
-- **README** — tableau comparatif + instructions multi-distro.
+- **`scripts/install-universal.sh`** — auto-detects `apt`/`dnf`/`yum`/`zypper`/`pacman`/`apk`, otherwise portable tarball to `/opt/pair`. Supports `--uninstall`.
+- **`scripts/build-universal.sh`** — produces `dist/pair-universal-*.tar.gz` + `*.deb` + `*.rpm` (if `fpm`/`rpmbuild` present) in one command. Also cross-compiles `darwin-arm64`/`darwin-amd64`.
+- **`Makefile`** — `make build-universal` target.
+- **README** — comparison table + multi-distro and Apple Silicon instructions.
 
-### 3. Non modifié
+### 3. Unchanged
 
-- Scheduler/routing: identique upstream (1 requête = 1 node, pas de pooling VRAM).
-- Proxies Ollama/LM Studio, cluster mTLS, discovery mDNS: identiques.
-- Desktop Electron: inchangé (lance les mêmes Go binaries).
-- Licence: Apache-2.0 conservée, headers SPDX ajoutés sur nouveaux fichiers.
+- Scheduler/routing: same as upstream (1 request = 1 node, no VRAM pooling).
+- Ollama/LM Studio proxies, cluster mTLS, mDNS discovery: same.
+- Desktop Electron: unchanged (launches same Go binaries).
+- License: Apache-2.0 preserved, SPDX headers added on new files.
+- Beta status: same as upstream (see `services/VERSIONING.md:28`).
 
-## Compatibilité
+## Compatibility
 
-| GPU | Statut |
+| GPU | Status |
 |---|---|
-| NVIDIA GTX 10xx Pascal (sm_61) | ✅ Testé via nvidia-smi, VRAM OK, Ollama Q4 7B |
+| NVIDIA GTX 10xx Pascal (sm_61) | ✅ Tested via nvidia-smi, VRAM OK, Ollama Q4 7B |
 | Tesla T4/P100/V100 | ✅ Turing/Pascal/Volta, driver 535+ |
-| Tesla K80 Kepler (sm_37) | ⚠️ CUDA 12 drop Kepler — CPU fallback seulement |
-| RTX 20xx+ | ✅ Natif |
-| AMD RX 6xxx/7xxx, Instinct MIxxx | ✅ Via DRM sysfs + rocm-smi si installé |
+| Tesla K80 Kepler (sm_37) | ⚠️ CUDA 12 drops Kepler — CPU fallback only |
+| RTX 20xx+ | ✅ Native |
+| AMD RX 6xxx/7xxx, Instinct MIxxx | ✅ Via DRM sysfs + rocm-smi if installed |
 | Intel Arc A770, iGPU | ✅ Via DRM sysfs |
-| Sans GPU | ✅ Node liste CPU/RAM, routage si Ollama CPU |
+| Apple Silicon M1/M2/M3/M4/M5 | ✅ Via IORegistry, unified memory |
+| No GPU | ✅ Lists CPU/RAM, routes if Ollama CPU |
 
-| Distro | Install |
+| Distro / OS | Install |
 |---|---|
-| Debian/Ubuntu/Mint | `apt install *.deb` ou `install-universal.sh` |
-| Fedora/RHEL/Alma/Rocky | `dnf install *.rpm` ou tarball |
+| Debian/Ubuntu/Mint | `apt install *.deb` or `install-universal.sh` |
+| Fedora/RHEL/Alma/Rocky | `dnf install *.rpm` or tarball |
 | openSUSE | `zypper install *.rpm` |
-| Arch/Manjaro | `pacman` non natif → tarball + `install-universal.sh` |
-| NixOS/Alpine/Autre | tarball portable `/opt/pair` |
+| Arch/Manjaro | `pacman` not native → tarball + `install-universal.sh` |
+| NixOS/Alpine/other | portable tarball `/opt/pair` |
+| macOS Apple Silicon | `pair-universal-*-darwin-arm64.tar.gz` or build from source |
+| macOS Intel | `pair-universal-*-darwin-amd64.tar.gz` |
+| Windows 11 | `.exe` same as upstream |
 
 ## Build
 
 ```bash
-# Prérequis: Go 1.25+, jq, Node 25.5+ (desktop seulement)
-make build-universal        # tout
-./services/build.sh         # binaires seuls dans services/build/bin
-./scripts/install-universal.sh   # install local auto-détect
-./services/build/bin/nvpair-tui  # TUI headless (Tesla/serveurs)
+# Prerequisites: Go 1.25+, jq, Node 25.5+ (desktop only)
+make build-universal        # all (linux tar.gz + deb + rpm)
+./services/build.sh         # binaries only in services/build/bin
+./scripts/install-universal.sh   # auto-detect install
+./services/build/bin/nvpair-tui  # headless TUI (Tesla/servers)
+# cross darwin from Linux:
+GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o nvpair-node-info ./...
 ```
 
 ## Upstream sync
 
-Pour rebase sur nouveau tag NVIDIA:
+To rebase on a new NVIDIA tag:
 
 ```bash
 git remote add upstream https://github.com/NVIDIA/Personal-AI-Router.git
 git fetch upstream
-git merge upstream/main  # résoudre conflits gpu_linux.go / stats_linux.go / versions.json
+git merge upstream/main  # resolve conflicts in gpu_linux.go / stats_linux.go / versions.json
 ```
 
-## Limites connues (identiques upstream)
+## Known limitations (same as upstream, beta)
 
-- Pas de pooling VRAM — un modèle doit tenir sur 1 GPU.
-- Scheduler naïf (utilization lissée seulement).
-- Ollama/LM Studio seuls (vLLM à venir).
-
+- No VRAM pooling — a model must fit on one GPU.
+- Naïve scheduler (smoothed utilization only).
+- Ollama/LM Studio only (vLLM planned).
+- Beta APIs may change without notice.
