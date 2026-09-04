@@ -10,7 +10,6 @@ import (
 	"io"
 	"log"
 	"log/slog"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -18,24 +17,14 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
-	"syscall"
 	"sync"
+	"syscall"
 	"time"
 
 	"nvpair-shared/applog"
 	"nvpair-shared/clustertrust"
-	"nvpair-shared/discovery"
-	"nvpair-shared/errors"
 	"nvpair-shared/ipc"
 	"nvpair-shared/jsonrpc"
-	"nvpair-shared/noderec"
-)
-
-const (
-	// vLLM default engine port
-	vllmEnginePort = 8000
-	// vLLM proxy default port
-	vllmProxyPort = 8001
 )
 
 // Version is set at build time via -ldflags
@@ -50,7 +39,7 @@ func (a *aliasAddressFlags) Set(value string) error {
 }
 
 func main() {
-	port := flag.Int("port", vllmProxyPort, "HTTP listen port (vLLM engine default 8000, proxy default 8001)")
+	port := flag.Int("port", 8001, "HTTP listen port (vLLM engine default 8000, proxy default 8001)")
 	var aliasAddresses aliasAddressFlags
 	flag.Var(&aliasAddresses, "alias-address", "optional loopback-only HTTP alias address (repeat for another loopback family)")
 	ignorePersistedPort := flag.Bool("ignore-persisted-port", false, "use --port even when a persisted port exists")
@@ -102,8 +91,7 @@ func main() {
 	}
 
 	codec := jsonrpc.NewCodec(transport)
-	disc := discovery.New()
-	proxy := newVLLMProxy(codec, disc, effectivePort)
+	proxy := newVLLMProxy(codec, effectivePort)
 	for _, aliasAddress := range aliasAddresses {
 		if err := proxy.setLoopbackAlias(aliasAddress); err != nil {
 			log.Fatalf("invalid alias address: %v", err)
@@ -113,7 +101,6 @@ func main() {
 
 	go proxy.mesh.Watch(ctx, func(clustered bool) {
 		slog.Info("cluster inference ingress switched personality", "cluster_ingress", clustered)
-		proxy.dropUnpinnedPeerTransports()
 	})
 
 	if err := proxy.Run(ctx); err != nil && ctx.Err() == nil {
@@ -169,21 +156,18 @@ func persistPort(port int) {
 
 // --- VLLM Proxy ---
 type vllmProxy struct {
-	codec          *jsonrpc.Codec
-	disc           *discovery.Discovery
-	port           int
-	server         *http.Server
-	mesh           *clustertrust.Mesh
-	mu             sync.RWMutex
-	loopbackAlias  string
-	clusterIngress bool
-	localBackend   *url.URL
+	codec        *jsonrpc.Codec
+	port         int
+	server       *http.Server
+	mesh         *clustertrust.Mesh
+	mu           sync.RWMutex
+	loopbackAlias string
+	localBackend *url.URL
 }
 
-func newVLLMProxy(codec *jsonrpc.Codec, disc *discovery.Discovery, port int) *vllmProxy {
+func newVLLMProxy(codec *jsonrpc.Codec, port int) *vllmProxy {
 	return &vllmProxy{
 		codec: codec,
-		disc:  disc,
 		port:  port,
 	}
 }
@@ -206,17 +190,14 @@ func (p *vllmProxy) setLocalBackend(target *url.URL) {
 	p.mu.Lock()
 	p.localBackend = target
 	p.mu.Unlock()
-	persistPort(target.Port())
+	portInt, _ := strconv.Atoi(target.Port())
+	persistPort(portInt)
 }
 
 func (p *vllmProxy) localBackendTarget() *url.URL {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	return p.localBackend
-}
-
-func (p *vllmProxy) dropUnpinnedPeerTransports() {
-	// Simplified: no-op for now
 }
 
 func (p *vllmProxy) Run(ctx context.Context) error {
@@ -248,7 +229,6 @@ func (p *vllmProxy) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *vllmProxy) handleReady(w http.ResponseWriter, r *http.Request) {
-	// Ready if we have a local backend
 	if p.localBackendTarget() != nil {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("READY"))
@@ -265,13 +245,10 @@ func (p *vllmProxy) handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Clone request and forward to local vLLM engine
 	r2 := r.Clone(r.Context())
 	r2.URL.Scheme = target.Scheme
 	r2.URL.Host = target.Host
 	r2.Host = target.Host
-
-	// Add API key header if needed
 	r2.Header.Set("Authorization", "Bearer vllm-local")
 
 	proxy := httputil.NewSingleHostReverseProxy(target)
