@@ -63,12 +63,16 @@ function hasFlag(name: string): boolean {
 
 interface ContractExceptions {
     ignoredMethods: Record<string, string>
+    standaloneBinaries: Record<string, string>
 }
 
 function readExceptions(): ContractExceptions {
     const parsed: JsonValue = JSON.parse(readFileSync(EXCEPTIONS_PATH, 'utf8'))
     if (!isJsonObject(parsed)) throw new Error(`${EXCEPTIONS_PATH} is not a JSON object`)
-    return { ignoredMethods: stringRecord(parsed['ignoredMethods']) }
+    return {
+        ignoredMethods: stringRecord(parsed['ignoredMethods']),
+        standaloneBinaries: stringRecord(parsed['standaloneBinaries'])
+    }
 }
 
 /**
@@ -213,6 +217,7 @@ interface MethodRow {
 interface BinaryReport {
     dir: string
     integrated: boolean
+    standaloneReason: string | undefined
     rows: MethodRow[]
     dynamic: DynamicSite[]
 }
@@ -259,27 +264,28 @@ function buildReports(
     for (const dir of backendDirs) {
         const abs = path.join(repo, dir)
         const integrated = ours.has(dir)
-        if (!integrated) drift.notIntegratedBinaries.push(dir)
+        const standaloneReason = exceptions.standaloneBinaries[dir]
+        if (!integrated && !standaloneReason) drift.notIntegratedBinaries.push(dir)
         if (!existsSync(abs)) {
-            reports.push({ dir, integrated, rows: [], dynamic: [] })
+            reports.push({ dir, integrated, standaloneReason, rows: [], dynamic: [] })
             continue
         }
         const surface = extractSurface(abs)
         const rows: MethodRow[] = []
         for (const method of [...surface.emits].sort()) {
             const referenced = uiText.includes(method)
-            const isIgnored = method in ignored
+            const isIgnored = Boolean(standaloneReason) || method in ignored
             rows.push({ method, direction: 'notification', referenced, ignored: isIgnored })
             if (!referenced && !isIgnored) drift.missingNotifications.push(`${dir} → ${method}`)
         }
         for (const method of [...surface.handles].sort()) {
             if (surface.emits.has(method)) continue
             const referenced = uiText.includes(method)
-            const isIgnored = method in ignored
+            const isIgnored = Boolean(standaloneReason) || method in ignored
             rows.push({ method, direction: 'request', referenced, ignored: isIgnored })
             if (!referenced && !isIgnored) drift.unusedRequests.push(`${dir} → ${method}`)
         }
-        reports.push({ dir, integrated, rows, dynamic: surface.dynamic })
+        reports.push({ dir, integrated, standaloneReason, rows, dynamic: surface.dynamic })
     }
 
     return { reports, drift }
@@ -345,7 +351,7 @@ function renderApiDoc(reports: BinaryReport[], drift: Drift): string {
     if (drift.unusedRequests.length === 0) L.push('- none ✅')
     else for (const m of drift.unusedRequests) L.push(`- ⚠️ ${m}`)
     L.push('')
-    L.push('### Backend binaries not listed in `modular-binaries.ts`')
+    L.push('### Unacknowledged backend binaries not listed in `modular-binaries.ts`')
     if (drift.notIntegratedBinaries.length === 0) L.push('- none ✅')
     else
         for (const b of drift.notIntegratedBinaries)
@@ -353,9 +359,17 @@ function renderApiDoc(reports: BinaryReport[], drift: Drift): string {
     L.push('')
 
     for (const report of reports) {
-        const tag = report.integrated ? '' : ' — ❌ NOT in modular-binaries.ts'
+        const tag = report.integrated
+            ? ''
+            : report.standaloneReason
+              ? ' — standalone beta'
+              : ' — ❌ NOT in modular-binaries.ts'
         L.push(`## ${report.dir}${tag}`)
         L.push('')
+        if (report.standaloneReason) {
+            L.push(`> ${report.standaloneReason}`)
+            L.push('')
+        }
         if (report.rows.length === 0) {
             L.push('_No JSON-RPC methods detected (HTTP-only binary, or source not present)._')
             L.push('')

@@ -26,6 +26,7 @@ __pycache__/
 # PAIR Universal build outputs (trop volumineux pour git, distribués via Releases)
 services/build/
 services/dist/
+services/vllm-proxy/vllm-proxy
 dist/
 desktop/cli-bin/
 desktop/out/

@@ -20,8 +20,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.25"
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y jq rpm
       - name: Build Go services
         run: |
           cd services
@@ -36,11 +36,16 @@ jobs:
       - name: Build portable tarball
         run: |
           ./scripts/build-universal.sh
+      - name: Smoke-test Linux packages
+        run: ./scripts/check-universal-package.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: pair-universal-linux-${{ github.sha }}
-          path: dist/pair-universal-*.tar.gz
+          path: |
+            dist/pair-universal-*.tar.gz
+            dist/pair-universal_*.deb
+            dist/pair-universal-*.rpm
           retention-days: 7
 
   build-test-darwin:
@@ -71,14 +76,17 @@ jobs:
           done
       - name: Verify version stamps
         run: |
-          /tmp/nvpair-node-info-arm64 --version | grep -q "0.14.0"
-          /tmp/nvpair-tui-arm64 --version | grep -q "0.7.2"
-          /tmp/vllm-proxy-arm64 --version | grep -q "0.1.0"
+          # Cross-compiled Mach-O binaries cannot execute on the Linux runner.
+          # Inspect Go's embedded build metadata instead.
+          go version -m /tmp/nvpair-node-info-arm64 | grep -Fq -- '-X main.Version=0.14.0'
+          go version -m /tmp/nvpair-tui-arm64 | grep -Fq -- '-X main.Version=0.7.2'
+          go version -m /tmp/vllm-proxy-arm64 | grep -Fq -- '-X main.Version=0.2.0'
+          go version -m /tmp/nvpair-engine-manager-arm64 | grep -Fq -- '-X main.Version=0.17.5'
 
   lint-check:
-    name: Lint & Headers
+    name: Desktop quality gates
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node
@@ -89,10 +97,20 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y jq
       - name: Check SPDX headers
         run: node scripts/spdx-headers.mjs
-      - name: Check Go build scripts (no npm install needed for this)
-        run: cd desktop && npm ci && npm run verify:build-scripts 2>&1 || true
-      - name: Desktop lint (optional, fast)
-        run: cd desktop && npm run lint 2>&1 | head -50 || true
+      - name: Install desktop dependencies
+        run: cd desktop && npm ci
+      - name: Check Go build scripts
+        run: cd desktop && npm run verify:build-scripts
+      - name: Lint desktop
+        run: cd desktop && npm run lint
+      - name: Typecheck desktop
+        run: cd desktop && npm run typecheck
+      - name: Check service contracts
+        run: cd desktop && npm run service-contracts:check
+      - name: Run desktop unit tests
+        run: cd desktop && npm run test:unit
+      - name: Check dead exports
+        run: cd desktop && npm run dead-code:check
 
   version-check:
     name: Version consistency
@@ -118,4 +136,5 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           # Could add logic to auto-tag on version bump
+          prod=$(jq -r '.product' services/versions.json)
           echo "Version: $prod"

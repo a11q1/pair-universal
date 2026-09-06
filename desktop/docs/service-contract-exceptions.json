@@ -1,5 +1,8 @@
 {
-    "$comment": "Intentionally unintegrated JSON-RPC methods for desktop ↔ services contract checks. Each ignoredMethods entry needs a current technical reason. Edit by hand; run npm run service-contracts:write to refresh docs/services-api.md after services/ changes.",
+    "$comment": "Intentional exceptions for desktop ↔ services contract checks. Every ignored method and standalone binary needs a current technical reason. Edit by hand; run npm run service-contracts:write to refresh docs/services-api.md after services/ changes.",
+    "standaloneBinaries": {
+        "vllm-proxy": "Experimental Linux loopback proxy. It is packaged for direct use with a local vLLM server but is not yet supervised by nvpair-ui-broker or exposed in the Electron desktop. See services/vllm-proxy/README.md."
+    },
     "ignoredMethods": {
         "schedule:priority": "Broker-internal. nvpair-job-scheduler emits a per-engine priority snapshot ({engine, nodes, ranks?} — ordered node ids plus each node's pending count) to nvpair-ui-broker, which forwards it to ollama-proxy and lmstudio-proxy via node/set-priority; each proxy then layers its own optimistic burst reservations on that baseline. PAIR consumes the routing result rather than this notification, and must not mirror the pending/reservation accounting.",
         "engine:restore-enabled": "Broker-internal startup restoration. nvpair-ui-broker emits engine:restore-enabled directly to its supervised engine-manager after the managed Ollama port gate and on manager respawn; it is not a renderer/UI notification.",

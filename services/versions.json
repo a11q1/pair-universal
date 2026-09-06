@@ -1,11 +1,11 @@
 {
-  "$comment": "Single source of truth for all version numbers. See VERSIONING.md for bump rules. Fork Universal: bumps nvpair-node-info for universal GPU support.",
-  "product": "0.91.8-universal",
-  "installer": "0.91.8-universal",
+  "$comment": "Single source of truth for all version numbers. See VERSIONING.md for bump rules. Fork Universal: universal GPU support, Linux packaging, and experimental standalone vLLM proxy.",
+  "product": "0.92.0-universal",
+  "installer": "0.92.0-universal",
   "components": {
     "ollama-proxy": "0.26.2",
     "lmstudio-proxy": "0.16.2",
-    "vllm-proxy": "0.1.0",
+    "vllm-proxy": "0.2.0",
     "nvpair-node-info": "0.14.0",
     "nvpair-node-scanner": "0.20.3",
     "nvpair-manual-nodes": "0.11.1",
@@ -13,7 +13,7 @@
     "nvpair-errors": "0.7.4",
     "nvpair-node-settings": "1.0.4",
     "nvpair-ui-broker": "0.40.2",
-    "nvpair-engine-manager": "0.17.4",
+    "nvpair-engine-manager": "0.17.5",
     "nvpair-cluster-manager": "1.1.4",
     "nvpair-job-scheduler": "0.4.1",
     "nvpair-tui": "0.7.2"

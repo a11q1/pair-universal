@@ -46,7 +46,7 @@ one, and both report live GPU and memory use throughout.
 | **GPU** | RTX 20+ / RTX PRO / DGX Spark / M4+ only | **All GPUs**: GTX 6xx+, Tesla K/P/V/A/H, RTX, Quadro, **AMD** ROCm, **Intel Arc/iGPU**, **Apple Silicon M1/M2/M3/M4/M5** (via `ioreg_parse.go:73` AGX/Apple), CPU-only (detected via nvidia-smi → rocm-smi/amd-smi → DRM sysfs → ghw → IORegistry) |
 | **Linux installers** | `.deb` only | **Universal**: `.deb` + `.rpm` + `.tar.gz` portable + `install.sh` auto-detects apt/dnf/pacman/zypper + build from source everywhere |
 | **Mixing nodes** | Windows/Linux/macOS can be paired | Same + heterogeneous NVIDIA/AMD/Intel/Apple clusters |
-| **Engines** | Ollama + LM Studio | Same (+ vLLM planned) |
+| **Engines** | Ollama + LM Studio | Same + standalone vLLM proxy (experimental, Linux) |
 
 **🌐 Technical differences:** `services/nvpair-node-info/gpu_linux.go:36` and `stats_linux.go:153` patched to enumerate all GPUs via DRM sysfs (`/sys/class/drm/card*/device/mem_info_*`). No RTX filter. Scheduler is unchanged — it routes each request to an eligible node, does not pool VRAM.
 
@@ -59,6 +59,10 @@ before assuming a node can serve a model. A node only becomes a candidate for a
 request once it is actually running a compatible engine, and PAIR prefers the
 nodes it already knows hold the model.
 
+The vLLM proxy currently forwards OpenAI-compatible requests to a vLLM server
+on the same Linux machine. The desktop and broker do not start, discover, or
+schedule it yet. See the [vLLM proxy guide](services/vllm-proxy/README.md).
+
 ## Quick start
 
 Download a released build and use the desktop application. That is the path we
@@ -70,19 +74,22 @@ with no desktop — but neither is the ordinary way in. Those are covered in
 
 ### Download a release
 
-A released installer is signed, sets up the background services and the desktop
-application together, and adds the firewall rules PAIR needs on Windows. It also
-tells you when a newer release exists and installs it on your say-so from
-**Settings → Service**. A build you make yourself is unsigned and checks no
-update feed, so you would upgrade it by pulling and rebuilding.
+The upstream desktop installer sets up the background services and desktop
+application together. Universal Linux packages and macOS archives currently
+contain the headless services and terminal interface. Build the Electron app
+from source if you need the Universal desktop changes.
 
 Download **PAIR Universal** from the
 [GitHub releases page](../../releases) (or upstream [NVIDIA/Personal-AI-Router](https://github.com/NVIDIA/Personal-AI-Router/releases)).
 Release downloads include:
 
-- Windows `.exe` (unchanged);
-- Linux **universal**: `.deb` (Debian/Ubuntu), `.rpm` (Fedora/RHEL/openSUSE), `.tar.gz` portable (any distro), and `install.sh`;
-- macOS **Apple Silicon & Intel**: `pair-universal-*-darwin-arm64.tar.gz` (M1/M2/M3/M4/M5) + `darwin-amd64.tar.gz` (Intel Mac) + upstream `.dmg`.
+- Windows desktop `.exe` and macOS desktop `.dmg` from upstream;
+- Linux **universal**: `.deb` (Debian/Ubuntu) and `.tar.gz` portable (any distro);
+- macOS **Apple Silicon & Intel** headless bundles: `darwin-arm64.tar.gz` and
+  `darwin-amd64.tar.gz`.
+
+The build workflow for this branch also produces an RPM for
+Fedora/RHEL/openSUSE releases.
 
 **🌐 Linux — universal installer (recommended, any distro):**
 ```bash
@@ -97,7 +104,7 @@ chmod +x scripts/install-universal.sh && ./scripts/install-universal.sh
 # Download darwin-arm64 tarball from Releases
 curl -LO https://github.com/a11q1/pair-universal/releases/latest/download/pair-universal-0.91.8-universal-darwin-arm64.tar.gz
 tar xf pair-universal-0.91.8-universal-darwin-arm64.tar.gz
-./pair-universal-0.91.8-universal/bin/nvpair-tui  # headless TUI, or launch desktop app if Electron build
+./pair-universal-0.91.8-universal/bin/nvpair-tui  # headless TUI
 
 # Alternative: build from source on Mac (M1/M2/M3/M4 native)
 git clone https://github.com/a11q1/pair-universal && cd pair-universal
@@ -121,6 +128,13 @@ git clone https://github.com/a11q1/pair-universal && cd pair-universal && ./serv
 
 If you have kept more than one PAIR package in that directory, install the one
 you want by its full filename instead.
+
+Linux packages and portable installs include the terminal-interface manual.
+After installation, open it with:
+
+```bash
+man nvpair-tui
+```
 
 ### Run it
 
@@ -207,9 +221,9 @@ uninstaller stops PAIR, removes its firewall rules, and asks whether to delete
 your data. Decline and it stays; accept and it is removed.
 
 **Linux (Universal).** `scripts/install-universal.sh --uninstall` or:
-- Debian: `sudo apt remove nvpair` / `sudo apt purge nvpair`
-- Fedora/RHEL: `sudo dnf remove nvpair`
-- Arch: `sudo pacman -R nvpair`
+- Debian: `sudo apt remove pair-universal` / `sudo apt purge pair-universal`
+- Fedora/RHEL: `sudo dnf remove pair-universal`
+- Arch: `sudo pacman -R pair-universal`
 - Tarball: `rm -rf /opt/pair && rm -rf ~/.config/"Nvidia Corporation"/"Personal AI Router"`
 Run `dpkg -l | grep -i pair` / `rpm -qa | grep pair` first if you need to confirm.
 

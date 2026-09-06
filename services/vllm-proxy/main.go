@@ -7,44 +7,28 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
-	"sync"
 	"syscall"
 	"time"
 
 	"nvpair-shared/applog"
-	"nvpair-shared/clustertrust"
-	"nvpair-shared/ipc"
-	"nvpair-shared/jsonrpc"
 )
 
 // Version is set at build time via -ldflags
 var Version = "dev"
 
-type aliasAddressFlags []string
-
-func (a *aliasAddressFlags) String() string { return strings.Join(*a, ",") }
-func (a *aliasAddressFlags) Set(value string) error {
-	*a = append(*a, value)
-	return nil
-}
-
 func main() {
 	port := flag.Int("port", 8001, "HTTP listen port (vLLM engine default 8000, proxy default 8001)")
-	var aliasAddresses aliasAddressFlags
-	flag.Var(&aliasAddresses, "alias-address", "optional loopback-only HTTP alias address (repeat for another loopback family)")
-	ignorePersistedPort := flag.Bool("ignore-persisted-port", false, "use --port even when a persisted port exists")
-	ipcPath := flag.String("ipc", "", "IPC endpoint: Unix domain socket path or Windows named pipe (default: stdin/stdout)")
-	clusterDir := flag.String("cluster-dir", "", "cluster trust directory (node.crt/key + trusted pins); enables the LAN mTLS inference ingress when this node is clustered")
+	backendURL := flag.String("backend-url", "http://127.0.0.1:8000", "loopback vLLM OpenAI endpoint")
+	backendAPIKey := flag.String("backend-api-key", "vllm-local", "API key sent to the local vLLM endpoint")
 	showVersion := flag.Bool("version", false, "print version and exit")
 	resolveLevel := applog.RegisterFlag(nil, slog.LevelInfo)
 	flag.Parse()
@@ -55,20 +39,6 @@ func main() {
 	}
 
 	applog.Init("vllm-proxy", resolveLevel())
-
-	var transport io.ReadWriteCloser
-	if *ipcPath != "" {
-		conn, err := ipc.Dial(*ipcPath)
-		if err != nil {
-			log.Fatalf("failed to connect to IPC endpoint %q: %v", *ipcPath, err)
-		}
-		transport = conn
-		log.Printf("using IPC transport: %s", *ipcPath)
-	} else {
-		transport = newStdioTransport()
-		log.Print("using stdio transport")
-	}
-	defer transport.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -84,24 +54,13 @@ func main() {
 		}
 	}()
 
-	persisted, hasPersisted := loadPersistedPort()
-	effectivePort := chooseStartupPort(*port, *ignorePersistedPort, persisted, hasPersisted)
-	if hasPersisted && !*ignorePersistedPort {
-		log.Printf("restored persisted proxy port %d", persisted)
+	target, err := parseBackendURL(*backendURL)
+	if err != nil {
+		log.Fatalf("invalid --backend-url: %v", err)
 	}
 
-	codec := jsonrpc.NewCodec(transport)
-	proxy := newVLLMProxy(codec, effectivePort)
-	for _, aliasAddress := range aliasAddresses {
-		if err := proxy.setLoopbackAlias(aliasAddress); err != nil {
-			log.Fatalf("invalid alias address: %v", err)
-		}
-	}
-	proxy.mesh = clustertrust.Open(*clusterDir)
-
-	go proxy.mesh.Watch(ctx, func(clustered bool) {
-		slog.Info("cluster inference ingress switched personality", "cluster_ingress", clustered)
-	})
+	proxy := newVLLMProxy(*port, *backendAPIKey)
+	proxy.setLocalBackend(target)
 
 	if err := proxy.Run(ctx); err != nil && ctx.Err() == nil {
 		log.Fatalf("proxy error: %v", err)
@@ -109,94 +68,47 @@ func main() {
 	log.Print("shutdown complete")
 }
 
-// --- Stdio transport ---
-type stdioTransport struct {
-	r *os.File
-	w *os.File
-}
-
-func newStdioTransport() *stdioTransport {
-	return &stdioTransport{r: os.Stdin, w: os.Stdout}
-}
-
-func (t *stdioTransport) Read(p []byte) (int, error)  { return t.r.Read(p) }
-func (t *stdioTransport) Write(p []byte) (int, error) { return t.w.Write(p) }
-func (t *stdioTransport) Close() error                { return nil }
-
-// --- IPC dial ---
-func dialIPC(path string) (io.ReadWriteCloser, error) {
-	return ipc.Dial(path)
-}
-
-// --- Persisted port ---
-const persistedPortFile = "vllm-proxy-port"
-
-func loadPersistedPort() (int, bool) {
-	data, err := os.ReadFile(persistedPortFile)
-	if err != nil {
-		return 0, false
-	}
-	port, err := strconv.Atoi(strings.TrimSpace(string(data)))
-	if err != nil {
-		return 0, false
-	}
-	return port, true
-}
-
-func chooseStartupPort(flagPort int, ignore bool, persisted int, hasPersisted bool) int {
-	if hasPersisted && !ignore {
-		return persisted
-	}
-	return flagPort
-}
-
-func persistPort(port int) {
-	_ = os.WriteFile(persistedPortFile, []byte(strconv.Itoa(port)), 0644)
-}
-
 // --- VLLM Proxy ---
 type vllmProxy struct {
-	codec        *jsonrpc.Codec
-	port         int
-	server       *http.Server
-	mesh         *clustertrust.Mesh
-	mu           sync.RWMutex
-	loopbackAlias string
-	localBackend *url.URL
+	port          int
+	backendAPIKey string
+	server        *http.Server
+	localBackend  *url.URL
 }
 
-func newVLLMProxy(codec *jsonrpc.Codec, port int) *vllmProxy {
+func newVLLMProxy(port int, backendAPIKey string) *vllmProxy {
 	return &vllmProxy{
-		codec: codec,
-		port:  port,
+		port:          port,
+		backendAPIKey: backendAPIKey,
 	}
-}
-
-func (p *vllmProxy) setLoopbackAlias(addr string) error {
-	u, err := url.Parse(addr)
-	if err != nil {
-		return err
-	}
-	if u.Scheme != "http" {
-		return fmt.Errorf("alias address must be http, got %s", u.Scheme)
-	}
-	p.mu.Lock()
-	p.loopbackAlias = u.Host
-	p.mu.Unlock()
-	return nil
 }
 
 func (p *vllmProxy) setLocalBackend(target *url.URL) {
-	p.mu.Lock()
 	p.localBackend = target
-	p.mu.Unlock()
-	portInt, _ := strconv.Atoi(target.Port())
-	persistPort(portInt)
+}
+
+func parseBackendURL(raw string) (*url.URL, error) {
+	target, err := url.Parse(raw)
+	if err != nil {
+		return nil, err
+	}
+	if target.Scheme != "http" && target.Scheme != "https" {
+		return nil, fmt.Errorf("scheme must be http or https")
+	}
+	if target.Hostname() == "" || target.Port() == "" {
+		return nil, fmt.Errorf("host and port are required")
+	}
+	host := target.Hostname()
+	if host != "localhost" {
+		ip := net.ParseIP(host)
+		if ip == nil || !ip.IsLoopback() {
+			return nil, fmt.Errorf("backend must use a loopback address")
+		}
+	}
+	return target, nil
 }
 
 func (p *vllmProxy) localBackendTarget() *url.URL {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
 	return p.localBackend
 }
 
@@ -207,20 +119,27 @@ func (p *vllmProxy) Run(ctx context.Context) error {
 	mux.HandleFunc("/ready", p.handleReady)
 
 	p.server = &http.Server{
-		Addr:              ":" + strconv.Itoa(p.port),
+		Addr:              "127.0.0.1:" + strconv.Itoa(p.port),
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	persistPort(p.port)
-	log.Printf("vLLM proxy listening on :%d", p.port)
+	log.Printf("vLLM proxy listening on 127.0.0.1:%d", p.port)
 
 	go func() {
 		<-ctx.Done()
-		p.server.Shutdown(context.Background())
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := p.server.Shutdown(shutdownCtx); err != nil {
+			slog.Warn("vLLM proxy shutdown did not complete cleanly", "err", err)
+		}
 	}()
 
-	return p.server.ListenAndServe()
+	err := p.server.ListenAndServe()
+	if err == http.ErrServerClosed {
+		return nil
+	}
+	return err
 }
 
 func (p *vllmProxy) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -229,12 +148,44 @@ func (p *vllmProxy) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *vllmProxy) handleReady(w http.ResponseWriter, r *http.Request) {
-	if p.localBackendTarget() != nil {
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	defer cancel()
+	if p.backendReady(ctx) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("READY"))
 	} else {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		w.Write([]byte("NO_BACKEND"))
+	}
+}
+
+func (p *vllmProxy) backendReady(ctx context.Context) bool {
+	target := p.localBackendTarget()
+	if target == nil {
+		return false
+	}
+	healthURL := *target
+	healthURL.Path = "/health"
+	healthURL.RawPath = ""
+	healthURL.RawQuery = ""
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL.String(), nil)
+	if err != nil {
+		return false
+	}
+	p.setBackendAuthorization(req.Header)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices
+}
+
+func (p *vllmProxy) setBackendAuthorization(header http.Header) {
+	if p.backendAPIKey != "" {
+		header.Set("Authorization", "Bearer "+p.backendAPIKey)
+	} else {
+		header.Del("Authorization")
 	}
 }
 
@@ -249,7 +200,7 @@ func (p *vllmProxy) handleRequest(w http.ResponseWriter, r *http.Request) {
 	r2.URL.Scheme = target.Scheme
 	r2.URL.Host = target.Host
 	r2.Host = target.Host
-	r2.Header.Set("Authorization", "Bearer vllm-local")
+	p.setBackendAuthorization(r2.Header)
 
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {

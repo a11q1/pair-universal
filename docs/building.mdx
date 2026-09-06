@@ -108,8 +108,10 @@ installable builds. This guide does not cover producing distributable artifacts.
 
 ## Build the Services Alone
 
-The service scripts read `services/versions.json`, stamp each version, build 13
-executables, and stage them together in `services/build/bin/`.
+The service scripts read `services/versions.json`, stamp each version, and stage
+the executables together in `services/build/bin/`. `build.sh` produces 14
+services on Linux and macOS, including the experimental vLLM proxy; `build.bat`
+produces the 13 Windows-supported services.
 
 Linux and macOS:
 
