@@ -42,7 +42,7 @@
 - ⚠️ ollama-proxy → node/selected
 - ⚠️ ollama-proxy → node/set-local-backend
 
-### Backend binaries not listed in `modular-binaries.ts`
+### Unacknowledged backend binaries not listed in `modular-binaries.ts`
 - none ✅
 
 ## lmstudio-proxy
@@ -299,4 +299,10 @@
 
 **Dynamic / unresolved notify sites (verify by hand — `npm run service-contracts` prints the line numbers):**
 - `method (var)  (proxy.go)`
+
+## vllm-proxy — standalone beta
+
+> Experimental Linux loopback proxy. It is packaged for direct use with a local vLLM server but is not yet supervised by nvpair-ui-broker or exposed in the Electron desktop. See services/vllm-proxy/README.md.
+
+_No JSON-RPC methods detected (HTTP-only binary, or source not present)._
 

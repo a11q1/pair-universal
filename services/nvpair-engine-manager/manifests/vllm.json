@@ -12,8 +12,7 @@
       "--max-model-len", "32768"
     ],
     "env": {
-      "VLLM_USE_V1": "1",
-      "CUDA_VISIBLE_DEVICES": "all"
+      "VLLM_USE_V1": "1"
     },
     "bind": "0.0.0.0",
     "port": 8000,
@@ -25,43 +24,29 @@
     "linux/amd64": {
       "detect": ["{install_dir}/bin/vllm", "{install_dir}/bin/python"],
       "install": {
-        "fetch": { "url": "https://github.com/vllm-project/vllm/archive/refs/tags/v0.6.3.tar.gz" },
-        "run": [
-          "bash", "-c",
-          "cd {download} && pip install --no-cache-dir -e . --extra-index-url https://download.pytorch.org/whl/cu121 2>&1 | tail -20"
+        "script": [
+          "bash", "-c", "python3 -m venv \"{install_dir}\" && \"{install_dir}/bin/python\" -m pip install --upgrade pip && \"{install_dir}/bin/python\" -m pip install --no-cache-dir 'vllm==0.6.3'"
         ],
         "mode": "user"
       },
       "uninstall": { "run": ["rm", "-rf", "{install_dir}"] },
       "runtime": {
         "bin": "{install_dir}/bin/python",
-        "args": ["-m", "vllm.entrypoints.openai.api_server"],
-        "env": {
-          "PATH": "{install_dir}/bin:{PATH}",
-          "LD_LIBRARY_PATH": "{install_dir}/lib:{LD_LIBRARY_PATH}",
-          "PYTHONPATH": "{install_dir}/lib/python3.12/site-packages"
-        }
+        "args": ["-m", "vllm.entrypoints.openai.api_server"]
       }
     },
     "linux/arm64": {
       "detect": ["{install_dir}/bin/vllm", "{install_dir}/bin/python"],
       "install": {
-        "fetch": { "url": "https://github.com/vllm-project/vllm/archive/refs/tags/v0.6.3.tar.gz" },
-        "run": [
-          "bash", "-c",
-          "cd {download} && pip install --no-cache-dir -e . 2>&1 | tail -20"
+        "script": [
+          "bash", "-c", "python3 -m venv \"{install_dir}\" && \"{install_dir}/bin/python\" -m pip install --upgrade pip && \"{install_dir}/bin/python\" -m pip install --no-cache-dir 'vllm==0.6.3'"
         ],
         "mode": "user"
       },
       "uninstall": { "run": ["rm", "-rf", "{install_dir}"] },
       "runtime": {
         "bin": "{install_dir}/bin/python",
-        "args": ["-m", "vllm.entrypoints.openai.api_server"],
-        "env": {
-          "PATH": "{install_dir}/bin:{PATH}",
-          "LD_LIBRARY_PATH": "{install_dir}/lib:{LD_LIBRARY_PATH}",
-          "PYTHONPATH": "{install_dir}/lib/python3.12/site-packages"
-        }
+        "args": ["-m", "vllm.entrypoints.openai.api_server"]
       }
     }
   },

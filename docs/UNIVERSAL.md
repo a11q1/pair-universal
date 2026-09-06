@@ -40,7 +40,9 @@ nvidia-smi (all: GTX/Tesla/RTX/Quadro) → AMD (amd-smi/rocm-smi + DRM sysfs) �
 ### 2. Universal Linux + macOS
 
 - **`scripts/install-universal.sh`** — auto-detects `apt`/`dnf`/`yum`/`zypper`/`pacman`/`apk`, otherwise portable tarball to `/opt/pair`. Supports `--uninstall`.
-- **`scripts/build-universal.sh`** — produces `dist/pair-universal-*.tar.gz` + `*.deb` + `*.rpm` (if `fpm`/`rpmbuild` present) in one command. Also cross-compiles `darwin-arm64`/`darwin-amd64`.
+- **`scripts/build-universal.sh`** — produces Linux `.tar.gz` and `.deb`, an
+  `.rpm` when `rpmbuild` or `fpm` is installed, and cross-compiled
+  `darwin-arm64`/`darwin-amd64` service bundles.
 - **`Makefile`** — `make build-universal` target.
 - **README** — comparison table + multi-distro and Apple Silicon instructions.
 
@@ -102,5 +104,6 @@ git merge upstream/main  # resolve conflicts in gpu_linux.go / stats_linux.go / 
 
 - No VRAM pooling — a model must fit on one GPU.
 - Naïve scheduler (smoothed utilization only).
-- Ollama/LM Studio only (vLLM planned).
+- Ollama and LM Studio are stable. The Linux vLLM proxy is an experimental
+  standalone component; it is not integrated with the desktop or scheduler.
 - Beta APIs may change without notice.

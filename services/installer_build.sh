@@ -139,6 +139,7 @@ fi
 
 cp "$BIN_SRC/ollama-proxy"     "$STAGE/bin/"
 cp "$BIN_SRC/lmstudio-proxy"   "$STAGE/bin/"
+cp "$BIN_SRC/vllm-proxy"       "$STAGE/bin/"
 cp "$BIN_SRC/nvpair-node-info"    "$STAGE/bin/"
 cp "$BIN_SRC/nvpair-node-scanner" "$STAGE/bin/"
 cp "$BIN_SRC/nvpair-manual-nodes" "$STAGE/bin/"
@@ -150,6 +151,11 @@ cp "$BIN_SRC/nvpair-cluster-manager" "$STAGE/bin/"
 cp "$BIN_SRC/nvpair-job-scheduler" "$STAGE/bin/"
 cp "$BIN_SRC/nvpair-ui-broker"    "$STAGE/bin/"
 cp "$BIN_SRC/nvpair-tui"          "$STAGE/bin/"
+
+if [[ "$PLATFORM" == "linux" ]]; then
+    mkdir -p "$STAGE/share/man/man1"
+    cp "$ROOT/../docs/nvpair-tui.1" "$STAGE/share/man/man1/"
+fi
 
 if [[ "$PLATFORM" == "darwin" ]]; then
     cp "$ROOT/installer/macos/INSTALL.md" "$STAGE/"

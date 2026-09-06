@@ -30,6 +30,10 @@ import { fileURLToPath } from 'node:url'
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 const COPYRIGHT_HOLDER = 'NVIDIA CORPORATION & AFFILIATES. All rights reserved.'
+const COPYRIGHT_HOLDERS = new Set([
+    COPYRIGHT_HOLDER,
+    'PAIR Universal Contributors',
+])
 const LICENSE_IDENTIFIER = 'Apache-2.0'
 
 // A header may sit below a shebang, an XML prologue, or YAML frontmatter, so the
@@ -56,6 +60,9 @@ function blockStyle(open, close, continuation, options = {}) {
 
 const SLASH = lineStyle('//')
 const HASH = lineStyle('#')
+// roff comments start with `.\"`. Manual pages use numeric section suffixes,
+// such as `.1`, instead of a conventional source extension.
+const ROFF = lineStyle('.\\\"')
 // services/build.bat and services/installer_build.bat set the precedent: `@REM`
 // rather than `REM`, so the header does not echo before `@echo off` runs.
 const BATCH = lineStyle('@REM')
@@ -98,6 +105,7 @@ const STYLE_BY_EXTENSION = new Map([
     ['.md', MARKDOWN],
     ['.mdx', MDX],
     ['.mdc', MARKDOWN],
+    ['.1', ROFF],
     ['.html', MARKUP],
     ['.xml', MARKUP],
     ['.plist', MARKUP],
@@ -201,7 +209,7 @@ function inspect(text) {
     // Strip a block-comment terminator the tag regex swept up on a one-line header.
     const notice = copyright[1].replace(/\s*(-->|\*\/)\s*$/, '').trim()
     const parsed = notice.match(COPYRIGHT_TEXT)
-    if (parsed === null || parsed[1] !== COPYRIGHT_HOLDER) {
+    if (parsed === null || !COPYRIGHT_HOLDERS.has(parsed[1])) {
         return { state: 'review', detail: `nonstandard copyright line: ${notice}` }
     }
     return { state: 'ok' }
@@ -259,7 +267,7 @@ function candidates(staged, prefixes) {
 
 const USAGE = `Usage: node scripts/spdx-headers.mjs [options] [path...]
 
-Verify that every file carries the NVIDIA SPDX copyright and license header.
+Verify that every file carries a recognized SPDX copyright and license header.
 
 Options:
   --fix            Insert the header into files that have none.

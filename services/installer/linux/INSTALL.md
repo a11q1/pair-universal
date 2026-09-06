@@ -33,7 +33,11 @@ NVIDIA-Personal-AI-Router-<version>/
 │   ├── nvpair-engine-manager
 │   ├── nvpair-node-settings
 │   ├── nvpair-cluster-manager
-│   └── nvpair-job-scheduler
+│   ├── nvpair-job-scheduler
+│   ├── nvpair-tui
+│   └── vllm-proxy
+├── share/man/man1/
+│   └── nvpair-tui.1
 └── INSTALL.md                     # this file
 ```
 
@@ -52,6 +56,9 @@ Unix socket via `--ipc`):
 The bundled UI connects to the broker over this contract. Other clients can use
 the same API; see the `nvpair-ui-broker` README for its JSON-RPC surface.
 
+When installed through `scripts/install-universal.sh`, the TUI is available as
+`nvpair` and its manual can be opened with `man nvpair-tui`.
+
 ## 3. Uninstall
 
 Since nothing was installed by a package manager, removal is just deleting the
@@ -67,7 +74,7 @@ that directory too if you want a fully clean slate.
 
 ## Requirements
 
-- 64-bit Linux on `x86_64`. ARM builds are not produced yet.
+- 64-bit Linux on `x86_64` or `arm64`.
 - mDNS on UDP 5353. The workers run their own — a custom per-interface responder
   (`nvpair-shared/mdns`) plus a `grandcat/zeroconf` browser (`nvpair-shared/discovery`),
   bound with `SO_REUSEADDR` — and coexist fine with a system responder like

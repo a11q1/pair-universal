@@ -1,0 +1,72 @@
+.\" SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+.\" SPDX-License-Identifier: Apache-2.0
+.TH NVPAIR-TUI 1 "September 2026" "PAIR Universal" "User Commands"
+.SH NAME
+nvpair-tui \- operate a Personal AI Router node from a terminal
+.SH SYNOPSIS
+.B nvpair-tui
+.RI [ options ]
+.SH DESCRIPTION
+.B nvpair-tui
+starts an
+.B nvpair-ui-broker
+process and displays a terminal interface for the local PAIR node.
+The broker supervises discovery, proxy, engine, cluster, settings, workload,
+error, and scheduling workers.
+.PP
+The terminal interface is intended for headless machines and SSH sessions.
+It provides node, proxy, workload, engine, cluster, manual-node, settings,
+error, and log views.
+.SH OPTIONS
+.TP
+.BI \-broker-path " PATH"
+Use the broker executable at
+.I PATH
+instead of looking for
+.B nvpair-ui-broker
+next to the TUI executable.
+.TP
+.BI \-log-level " LEVEL"
+Set the TUI log level. Supported values are
+.BR debug ,
+.BR info ,
+.BR warn ,
+and
+.BR error .
+.TP
+.B \-version
+Print the component version and exit.
+.TP
+.BR \-h , " \-help"
+Show command-line help and exit.
+.SH KEYBOARD
+.TP
+.BR Tab , " Shift+Tab"
+Move between views. The left and right arrow keys, or
+.B h
+and
+.BR l ,
+perform the same action.
+.TP
+.B ?
+Toggle full keyboard help.
+.TP
+.BR q , " Ctrl+C"
+Shut down the broker and exit.
+.PP
+Each view displays its available actions in the footer. While editing a field,
+press Enter to submit or Escape to cancel.
+.SH FILES
+.TP
+.I ~/.config/Nvidia Corporation/Personal AI Router/
+Per-user settings, logs, cluster identity, and certificates.
+.SH SECURITY
+PAIR is designed for trusted local networks. Do not expose plaintext inference
+or control endpoints to untrusted interfaces. Never publish pairing PINs,
+certificate material, prompts, responses, or unsanitized logs.
+.SH SEE ALSO
+The PAIR documentation at https://github.com/a11q1/pair-universal/tree/main/docs,
+and the upstream project at https://github.com/NVIDIA/Personal-AI-Router.
+.SH BUGS
+Report PAIR Universal issues at
+https://github.com/a11q1/pair-universal/issues.

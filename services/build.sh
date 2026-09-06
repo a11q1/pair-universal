@@ -97,9 +97,11 @@ echo " Building all components (platform: $PLATFORM)"
 echo "========================================"
 echo
 
+TOTAL_COMPONENTS=14
+
 build_subbinary() {
     local idx="$1" name="$2" version="$3"
-    echo "[$idx/13] Building $name (v$version)..."
+    echo "[$idx/$TOTAL_COMPONENTS] Building $name (v$version)..."
     (cd "$ROOT/$name" && go build -ldflags "-X main.Version=$version" -o "$name" .)
     echo "      OK"
 }

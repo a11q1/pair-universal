@@ -84,7 +84,13 @@ for the locations. This is on the roadmap.
 
 ## Platform Limits Worth Knowing
 
-- **The Linux desktop installer is a `.deb` only.** On RPM-based distributions,
-  [build from source](building.mdx).
+- **vLLM support is currently standalone and Linux-only.** The packaged proxy
+  can forward OpenAI-compatible requests to a vLLM server on the same machine,
+  but the desktop and broker do not start, discover, or schedule it. See the
+  [vLLM proxy guide](../services/vllm-proxy/README.md).
+- **Universal Linux packages currently contain the headless service bundle.**
+  `.deb`, `.rpm`, and portable `.tar.gz` packages are available, but the full
+  Electron desktop application still needs to be built from source on Linux.
+  See [Building PAIR](building.mdx).
 - **Windows on ARM is experimental.** Refer to
   [What is supported](../README.md#what-is-supported).
