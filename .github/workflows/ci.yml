@@ -76,10 +76,12 @@ jobs:
           done
       - name: Verify version stamps
         run: |
-          /tmp/nvpair-node-info-arm64 --version | grep -q "0.14.0"
-          /tmp/nvpair-tui-arm64 --version | grep -q "0.7.2"
-          /tmp/vllm-proxy-arm64 --version | grep -q "0.2.0"
-          /tmp/nvpair-engine-manager-arm64 --version | grep -q "0.17.5"
+          # Cross-compiled Mach-O binaries cannot execute on the Linux runner.
+          # Inspect Go's embedded build metadata instead.
+          go version -m /tmp/nvpair-node-info-arm64 | grep -Fq -- '-X main.Version=0.14.0'
+          go version -m /tmp/nvpair-tui-arm64 | grep -Fq -- '-X main.Version=0.7.2'
+          go version -m /tmp/vllm-proxy-arm64 | grep -Fq -- '-X main.Version=0.2.0'
+          go version -m /tmp/nvpair-engine-manager-arm64 | grep -Fq -- '-X main.Version=0.17.5'
 
   lint-check:
     name: Desktop quality gates
